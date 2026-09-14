@@ -1,0 +1,35 @@
+{
+  "name": "glacier-inventory",
+  "version": "0.1.0",
+  "description": "Web viewer for the glacier inventory dataset",
+  "private": true,
+  "engines": {
+    "node": ">=20.12"
+  },
+  "scripts": {
+    "prepare-data": "node scripts/prepare-data.js",
+    "start": "brunch watch --server",
+    "build": "brunch build --production",
+    "clean": "rm -rf public"
+  },
+  "dependencies": {
+    "mapbox-gl": "^3.30.0",
+    "vue": "2.7.16",
+    "vue-router": "3.6.5"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.24.0",
+    "@babel/preset-env": "^7.24.0",
+    "auto-reload-brunch": "^3.0.1",
+    "babel-brunch": "^7.0.1",
+    "babel-core": "^6.26.3",
+    "babel-plugin-transform-es2015-modules-commonjs": "^6.26.2",
+    "babel-plugin-transform-inline-environment-variables": "^0.4.4",
+    "brunch": "4.0.2",
+    "clean-css-brunch": "^3.0.0",
+    "proj4": "^2.22.0",
+    "terser-brunch": "^4.1.0",
+    "vue-brunch": "^2.0.3",
+    "vue-template-compiler": "2.7.16"
+  }
+}
