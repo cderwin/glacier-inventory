@@ -38,6 +38,59 @@ shell environment overrides the file.
 `MAPBOX_ACCESS_TOKEN` repository variable, and `BASE_PATH` is
 `/glacier-inventory/`.
 
+## Git workflow (GitHub flow)
+
+This repo uses [GitHub flow](https://docs.github.com/en/get-started/using-github/github-flow).
+`main` is the only long-lived branch. It must always build, because every
+push to `main` deploys the live site. All other work happens on short-lived
+branches that reach `main` through a pull request.
+
+**Use this flow for every feature, fix, and other change.** Never commit or
+push directly to `main`.
+
+1. **Start from an up-to-date `main`:**
+   ```sh
+   git switch main && git pull --ff-only
+   ```
+2. **Create a branch** named `<type>/<short-kebab-description>`. The type is
+   `feature`, `fix`, `docs`, or `chore`, e.g. `feature/glacier-search`.
+   ```sh
+   git switch -c feature/glacier-search
+   ```
+   Use one branch per change; don't mix unrelated work.
+3. **Commit in small, focused steps.**
+   - Write the subject in the imperative, 72 characters at most. Use the body
+     to explain why.
+   - If you change `scripts/prepare-data.js`, commit the regenerated
+     `glaciers.geojson` together with it.
+   - Never commit `.env`, `data/`, or `public/`.
+4. **Verify before pushing.** Follow "Verifying changes" below: a clean
+   `npm run build` for every change, plus a browser check for UI or map
+   changes.
+5. **Push and open a pull request** against `main`:
+   ```sh
+   git push -u origin feature/glacier-search
+   gh pr create --base main
+   ```
+   The description should cover what changed and why, and how you tested it.
+   Call out anything a reviewer must do by hand, such as repo settings or
+   token changes.
+6. **Get CI green.** The `build` check must pass. Fix failures with new
+   commits on the same branch.
+7. **Don't merge your own PR** unless the user asks. Merging deploys to
+   production, so the user decides when.
+8. **After the merge,** update `main` and delete the branch:
+   ```sh
+   git switch main && git pull --ff-only
+   git branch -d feature/glacier-search
+   git push origin --delete feature/glacier-search
+   ```
+
+If `main` moves while your branch is open, rebase onto it
+(`git fetch && git rebase origin/main`). Then run the build again and push
+with `git push --force-with-lease`. Only force-push branches you created,
+and never force-push `main`.
+
 ## Architecture
 
 ```
