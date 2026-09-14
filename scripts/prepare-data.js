@@ -104,12 +104,51 @@ function reprojectRing(ring) {
     const prev = lonLat[lonLat.length - 1];
     if (prev && prev[0] === lon && prev[1] === lat) continue;
     lonLat.push([lon, lat]);
-    bbox[0] = Math.min(bbox[0], lon);
-    bbox[1] = Math.min(bbox[1], lat);
-    bbox[2] = Math.max(bbox[2], lon);
-    bbox[3] = Math.max(bbox[3], lat);
   }
   return lonLat;
+}
+
+// Area centroid of a polygon, computed on the original rings in the source
+// projection. ESRI:102039 is equal-area, so the result is a true centroid.
+// Coordinates are taken relative to the first vertex to keep precision.
+// The source's X_COORD/Y_COORD are label points, not centroids.
+function polygonCentroid(rings) {
+  const [ox, oy] = rings[0][0];
+  let totalArea = 0;
+  let momentX = 0;
+  let momentY = 0;
+  rings.forEach((ring, index) => {
+    let area = 0;
+    let mx = 0;
+    let my = 0;
+    for (let i = 0; i < ring.length; i++) {
+      const [x1, y1] = [ring[i][0] - ox, ring[i][1] - oy];
+      const next = ring[(i + 1) % ring.length];
+      const [x2, y2] = [next[0] - ox, next[1] - oy];
+      const cross = x1 * y2 - x2 * y1;
+      area += cross;
+      mx += (x1 + x2) * cross;
+      my += (y1 + y2) * cross;
+    }
+    // Ring winding varies; count the outline as positive and holes negative.
+    const sign = (index === 0 ? 1 : -1) * Math.sign(area);
+    totalArea += (sign * area) / 2;
+    momentX += (sign * mx) / 6;
+    momentY += (sign * my) / 6;
+  });
+  return toLonLat([ox + momentX / totalArea, oy + momentY / totalArea]).map(round);
+}
+
+// [west, south, east, north] of a ring.
+function ringBbox(ring) {
+  const box = [Infinity, Infinity, -Infinity, -Infinity];
+  ring.forEach(([lon, lat]) => {
+    box[0] = Math.min(box[0], lon);
+    box[1] = Math.min(box[1], lat);
+    box[2] = Math.max(box[2], lon);
+    box[3] = Math.max(box[3], lat);
+  });
+  return box;
 }
 
 let vertices = 0;
@@ -126,6 +165,14 @@ const features = geojson.features.map(feature => {
   const rings = [outline, ...holes.filter(ring => ring.length >= 4)];
   vertices += rings.reduce((sum, ring) => sum + ring.length, 0);
 
+  // Holes lie inside the outline, so its extent is the feature's. The app
+  // zooms to it when a search result is chosen.
+  const featureBbox = ringBbox(outline);
+  bbox[0] = Math.min(bbox[0], featureBbox[0]);
+  bbox[1] = Math.min(bbox[1], featureBbox[1]);
+  bbox[2] = Math.max(bbox[2], featureBbox[2]);
+  bbox[3] = Math.max(bbox[3], featureBbox[3]);
+
   const properties = {};
   PROPERTIES.forEach(name => {
     properties[name] = feature.properties[name];
@@ -134,6 +181,10 @@ const features = geojson.features.map(feature => {
   return {
     type: 'Feature',
     id: feature.id,
+    bbox: featureBbox,
+    // Not a standard GeoJSON member; Mapbox ignores it. The glacier search
+    // combines these, weighted by area, for glaciers split into pieces.
+    centroid: polygonCentroid(feature.geometry.coordinates),
     geometry: { type: 'Polygon', coordinates: rings },
     properties
   };
