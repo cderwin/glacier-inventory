@@ -6,6 +6,7 @@
       <glacier-search
         :entries="searchEntries"
         :center="mapCenter"
+        :hidden-classes="hiddenClasses"
         :disabled="!searchEntries.length"
         @select="zoomTo"
       />
@@ -247,14 +248,29 @@ export default {
       GLACIER_LAYERS.forEach(layer => map.setFilter(layer, filter));
     },
 
-    zoomTo(entry) {
-      // Keep the geometry clear of the panel in the top-left corner. Don't
+    // Centers the map on a search group's centroid, zoomed so all its pieces
+    // are in view.
+    zoomTo(group) {
+      const map = this.map;
+      // Keep the glacier clear of the panel in the top-left corner. Don't
       // keep that padding afterwards: it would shift the map's center, which
       // the nearest-glacier suggestions and zoom controls use.
       const panel = this.$refs.panel;
-      this.map.fitBounds(entry.bbox, {
-        padding: { top: panel.offsetTop + panel.offsetHeight + 20, right: 60, bottom: 40, left: 40 },
-        maxZoom: 15,
+      const padding = { top: panel.offsetTop + panel.offsetHeight + 20, right: 60, bottom: 40, left: 40 };
+      // The centroid is rarely the middle of the pieces' bbox, so widen the
+      // bbox to be symmetric around it before working out the zoom.
+      const [lon, lat] = group.centroid;
+      const [west, south, east, north] = group.bbox;
+      const halfWidth = Math.max(lon - west, east - lon);
+      const halfHeight = Math.max(lat - south, north - lat);
+      const camera = map.cameraForBounds(
+        [lon - halfWidth, lat - halfHeight, lon + halfWidth, lat + halfHeight],
+        { padding, maxZoom: 15 }
+      );
+      map.flyTo({
+        center: group.centroid,
+        zoom: camera ? camera.zoom : 15,
+        padding,
         retainPadding: false
       });
     },
@@ -308,7 +324,7 @@ function buildSearchEntries(features) {
         className: props.CLASS,
         region: props.GEO_REGION,
         areaKm2: props.AREA_KM2,
-        center: [props.X_COORD, props.Y_COORD],
+        centroid: feature.centroid,
         bbox: feature.bbox
       })
     );

@@ -35,21 +35,24 @@
         class="glacier-search-list"
       >
         <li
-          v-for="(entry, index) in suggestions"
-          :id="optionId(entry)"
-          :key="entry.id"
+          v-for="(group, index) in suggestions"
+          :id="optionId(group)"
+          :key="group.id"
           role="option"
           :aria-selected="index === active ? 'true' : 'false'"
           class="glacier-search-option"
           :class="{ 'glacier-search-option--active': index === active }"
-          @mousedown.prevent="choose(entry)"
+          @mousedown.prevent="choose(group)"
           @mousemove="active = index"
         >
-          <span class="glacier-search-name">{{ entry.name }}</span>
-          <span class="glacier-search-detail">{{ detail(entry) }}</span>
+          <span class="glacier-search-name">{{ group.name }}</span>
+          <span class="glacier-search-detail">{{ detail(group) }}</span>
         </li>
       </ul>
-      <p v-else class="glacier-search-empty">No names match “{{ query.trim() }}”.</p>
+      <p v-else-if="searching" class="glacier-search-empty">
+        No {{ hiddenClasses.length ? 'shown glaciers' : 'names' }} match “{{ query.trim() }}”.
+      </p>
+      <p v-else class="glacier-search-empty">No named glaciers are shown.</p>
     </div>
   </div>
 </template>
@@ -70,18 +73,74 @@ function formatKm(km) {
   return km < 10 ? `${km.toFixed(1)} km` : `${Math.round(km)} km`;
 }
 
+// Groups entries by name and region. A glacier split into pieces becomes one
+// suggestion; namesakes in different ranges stay separate. The group's
+// centroid is the area-weighted mean of its pieces' centroids, which is the
+// centroid of the pieces combined, since they don't overlap.
+function groupEntries(entries, hiddenClasses) {
+  const groups = [];
+  const byKey = {};
+  entries.forEach(entry => {
+    if (hiddenClasses.indexOf(entry.className) !== -1) return;
+    const key = `${entry.name}\n${entry.region}`;
+    let group = byKey[key];
+    if (!group) {
+      group = byKey[key] = {
+        // The first piece's feature id is unique across groups.
+        id: entry.id,
+        name: entry.name,
+        key: entry.key,
+        region: entry.region,
+        classes: [],
+        pieces: 0,
+        areaKm2: 0,
+        momentLon: 0,
+        momentLat: 0,
+        bbox: entry.bbox.slice()
+      };
+      groups.push(group);
+    }
+    if (group.classes.indexOf(entry.className) === -1) group.classes.push(entry.className);
+    group.pieces += 1;
+    group.areaKm2 += entry.areaKm2;
+    group.momentLon += entry.centroid[0] * entry.areaKm2;
+    group.momentLat += entry.centroid[1] * entry.areaKm2;
+    group.bbox[0] = Math.min(group.bbox[0], entry.bbox[0]);
+    group.bbox[1] = Math.min(group.bbox[1], entry.bbox[1]);
+    group.bbox[2] = Math.max(group.bbox[2], entry.bbox[2]);
+    group.bbox[3] = Math.max(group.bbox[3], entry.bbox[3]);
+  });
+  return groups.map(group =>
+    Object.freeze({
+      id: group.id,
+      name: group.name,
+      key: group.key,
+      region: group.region,
+      classes: group.classes.sort(),
+      pieces: group.pieces,
+      areaKm2: group.areaKm2,
+      centroid: [group.momentLon / group.areaKm2, group.momentLat / group.areaKm2],
+      bbox: group.bbox
+    })
+  );
+}
+
 // Search box with a suggestion list. With an empty query it suggests the
 // named glaciers nearest `center`; otherwise glaciers whose names match.
-// Emits `select` with the chosen entry; the parent moves the map.
+// Classes in `hiddenClasses` are left out. Emits `select` with the chosen
+// group ({ name, region, centroid, bbox, ... }); the parent moves the map.
 export default {
   name: 'GlacierSearch',
 
   props: {
-    // Frozen array of { id, name, key, className, region, areaKm2, center, bbox }.
+    // Frozen array of named features:
+    // { id, name, key, className, region, areaKm2, centroid, bbox }.
     // `key` is the lower-cased name.
     entries: { type: Array, required: true },
     // Map center as [lon, lat].
     center: { type: Array, default: null },
+    // Classes switched off in the legend.
+    hiddenClasses: { type: Array, default: () => [] },
     disabled: { type: Boolean, default: false }
   },
 
@@ -98,32 +157,36 @@ export default {
       return this.query.trim() !== '';
     },
 
+    groups() {
+      return groupEntries(this.entries, this.hiddenClasses);
+    },
+
     suggestions() {
       const query = this.query.trim().toLowerCase();
       const center = this.center;
       const ranked = [];
-      this.entries.forEach(entry => {
+      this.groups.forEach(group => {
         // Rank: name starts with the query, then a word does, then any match.
         let rank = 0;
         if (query) {
-          const at = entry.key.indexOf(query);
+          const at = group.key.indexOf(query);
           if (at === -1) return;
-          rank = at === 0 ? 0 : entry.key.charAt(at - 1) === ' ' ? 1 : 2;
+          rank = at === 0 ? 0 : group.key.charAt(at - 1) === ' ' ? 1 : 2;
         }
-        const distance = center ? distanceKm(center, entry.center) : 0;
-        ranked.push({ entry, rank, distance });
+        const distance = center ? distanceKm(center, group.centroid) : 0;
+        ranked.push({ group, rank, distance });
       });
       ranked.sort(
-        (a, b) => a.rank - b.rank || a.distance - b.distance || a.entry.name.localeCompare(b.entry.name)
+        (a, b) => a.rank - b.rank || a.distance - b.distance || a.group.name.localeCompare(b.group.name)
       );
       return ranked
         .slice(0, MAX_SUGGESTIONS)
-        .map(item => Object.assign({ distance: item.distance }, item.entry));
+        .map(item => Object.assign({ distance: item.distance }, item.group));
     },
 
     activeOptionId() {
-      const entry = this.suggestions[this.active];
-      return this.open && entry ? this.optionId(entry) : null;
+      const group = this.suggestions[this.active];
+      return this.open && group ? this.optionId(group) : null;
     }
   },
 
@@ -153,23 +216,24 @@ export default {
       if (count) this.active = (this.active + step + count) % count;
     },
 
-    choose(entry) {
-      if (!entry) return;
-      this.query = entry.name;
+    choose(group) {
+      if (!group) return;
+      this.query = group.name;
       this.open = false;
       this.active = 0;
-      this.$emit('select', entry);
+      this.$emit('select', group);
     },
 
-    optionId(entry) {
-      return `glacier-search-option-${entry.id}`;
+    optionId(group) {
+      return `glacier-search-option-${group.id}`;
     },
 
-    detail(entry) {
-      // Many names repeat (fragments of one glacier, or namesakes in other
-      // ranges), so show enough to tell them apart.
-      const where = this.searching || !this.center ? entry.region : `${formatKm(entry.distance)} away`;
-      return [where, entry.className, `${entry.areaKm2.toFixed(3)} km²`].join(' · ');
+    detail(group) {
+      // Namesakes in other ranges share a name, so matches show the region.
+      const where = this.searching || !this.center ? group.region : `${formatKm(group.distance)} away`;
+      const parts = [where, group.classes.join(' + '), `${group.areaKm2.toFixed(3)} km²`];
+      if (group.pieces > 1) parts.push(`${group.pieces} pieces`);
+      return parts.join(' · ');
     }
   }
 };
