@@ -45,9 +45,9 @@ module.exports = {
   plugins: {
     babel: {
       presets: ['@babel/preset-env'],
-      // Bakes MAPBOX_ACCESS_TOKEN from the build environment into app/config.js.
+      // Bakes these build environment variables into app/config.js.
       plugins: [
-        ['transform-inline-environment-variables', { include: ['MAPBOX_ACCESS_TOKEN'] }]
+        ['transform-inline-environment-variables', { include: ['MAPBOX_ACCESS_TOKEN', 'BASE_PATH'] }]
       ],
       // Files in npm.static still pass through compilers; without this,
       // Babel re-transpiles mapbox-gl.js and adds ~250 KB to vendor.js.

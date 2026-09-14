@@ -5,8 +5,10 @@
 A browser viewer for a glacier inventory of the western contiguous US:
 2,542 polygons (glaciers, perennial snowfields, buried ice) across CA, OR, WA,
 ID, MT, WY, CO, NV. The source is `data/inventory_20220929.geojson`, which is
-42 MB and gitignored. The app shows it on a Mapbox GL map, and clicking a
-feature shows its attributes.
+42 MB and gitignored. A reduced copy is committed at
+`app/assets/data/glaciers.geojson`. The app shows it on a Mapbox GL map, and
+clicking a feature shows its attributes. Pushes to `main` deploy it to
+https://cderwin.github.io/glacier-inventory/.
 
 ## Stack
 
@@ -21,7 +23,7 @@ There are no tests or linter.
 ## Commands
 
 ```sh
-npm run prepare-data                     # reproject source data -> app/assets/data/glaciers.geojson
+npm run prepare-data                     # source data -> app/assets/data/glaciers.geojson (needs data/)
 npm start                                # dev server, http://localhost:3333
 npm run build                            # production bundle in public/
 npm run clean                            # delete public/
@@ -31,13 +33,19 @@ npm run clean                            # delete public/
 `.env.example`), loaded at the top of `brunch-config.js`. A value set in the
 shell environment overrides the file.
 
+`.github/workflows/pages.yml` builds on every pull request, and on pushes to
+`main` it deploys `public/` to GitHub Pages. In CI the token comes from the
+`MAPBOX_ACCESS_TOKEN` repository variable, and `BASE_PATH` is
+`/glacier-inventory/`.
+
 ## Architecture
 
 ```
 data/inventory_20220929.geojson   source data, ESRI:102039 (Albers, meters), gitignored
-        │  scripts/prepare-data.js   (proj4 → WGS84, round to 6 dp, drop Z, add bbox)
+        │  scripts/prepare-data.js   (simplify to 1 m, proj4 → WGS84, round to 5 dp,
+        │                             drop Z and unused attributes, add bbox)
         ▼
-app/assets/data/glaciers.geojson  generated, gitignored; brunch copies it to public/data/
+app/assets/data/glaciers.geojson  generated, committed (10.7 MB); brunch copies it to public/data/
         │  fetch(GLACIERS_URL)
         ▼
 app/components/InventoryMap.vue   Mapbox map, sources, layers, popups
@@ -46,8 +54,11 @@ app/components/InventoryMap.vue   Mapbox map, sources, layers, popups
 - `app/initialize.js` is the entry point. Brunch auto-requires it, so there's no
   inline script in `index.html`. It mounts `App.vue` with the router.
 - `app/router/index.js` has two routes: `/` → `InventoryMap`, `/about` → `About`.
-- `app/config.js` holds build-time settings: `MAPBOX_ACCESS_TOKEN` (inlined from
-  the environment) and `GLACIERS_URL`.
+- `app/config.js` holds build-time settings: `MAPBOX_ACCESS_TOKEN` and
+  `BASE_PATH` (inlined from the environment) and `GLACIERS_URL`.
+- The app can be served under a sub-path. Build URLs from `BASE_PATH` (the
+  router's `base` and `GLACIERS_URL` do). `index.html` uses relative asset
+  URLs, which only works while every route is one level deep.
 - `app/assets/` is copied verbatim into `public/` (including `index.html`).
 - Bundles:
   - `js/vendor.js`: everything outside `app/`
@@ -73,7 +84,9 @@ app/components/InventoryMap.vue   Mapbox map, sources, layers, popups
 
 ### Data fields
 
-The fields used in the UI:
+The prepared data keeps only these fields (`PROPERTIES` in
+`scripts/prepare-data.js`). To show another source field, add it there and
+re-run `prepare-data`.
 
 | Field | Meaning |
 |---|---|
@@ -82,12 +95,13 @@ The fields used in the UI:
 | `AREA_KM2` | area |
 | `GEO_REGION` | mountain range |
 | `UNIT_NAME` | managing unit |
-| `STATENAME` | state |
 | `YEAR`, `SOURCE_MAT` | when and from what the outline was mapped |
 | `INV_ID` | inventory ID |
 | `X_COORD`, `Y_COORD` | centroid, lon/lat |
 
-`Shape_Length` and `Shape_Area` are in the source projection's meters.
+The source also has `STATENAME`, `ADM_NAME`, `LandOwner`, `COMMENT`, and
+others. Its `Shape_Length` and `Shape_Area` are in the source projection's
+meters.
 
 ## Toolchain constraints (read before changing the build or writing code)
 
@@ -123,7 +137,7 @@ The fields used in the UI:
   Add a package's CSS through `npm.styles`.
 - `vue` and `vue-template-compiler` must stay on exactly the same version.
 - The dev server serves `public/`, so data must go under `app/assets/` to be
-  reachable. `npm run clean` wipes `public/`, but generated assets in
+  reachable. `npm run clean` wipes `public/`, but assets in
   `app/assets/data/` survive.
 
 ## Best practices for new code
@@ -155,7 +169,7 @@ The fields used in the UI:
   Dataset strings are free text, so never use `setHTML` with them.
 - Report map `error` events to the user only while nothing is displayed yet.
   After that, a failed basemap tile shouldn't replace the status.
-- The dataset is large: 24.5 MB prepared. Avoid extra copies of the full
+- The dataset is large: 10.7 MB prepared. Avoid extra copies of the full
   collection on the main thread. Prefer filters and expressions over rebuilding
   sources.
 
@@ -166,7 +180,10 @@ The fields used in the UI:
 - The coordinate system must be WGS84 lon/lat by the time data reaches the
   client. `prepare-data.js` refuses input whose `crs` isn't ESRI:102039; update
   that check deliberately if the source changes.
-- Never commit datasets. Generated outputs go in gitignored paths.
+- Commit only the prepared `app/assets/data/glaciers.geojson`, which CI needs
+  to build the site. Keep source datasets in gitignored `data/`. After
+  changing `prepare-data.js`, regenerate and commit the output together with
+  the script. Keep the file well under GitHub's 50 MB warning size.
 
 ### Verifying changes
 
