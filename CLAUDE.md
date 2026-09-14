@@ -96,9 +96,10 @@ and never force-push `main`.
 ```
 data/inventory_20220929.geojson   source data, ESRI:102039 (Albers, meters), gitignored
         │  scripts/prepare-data.js   (simplify to 1 m, proj4 → WGS84, round to 5 dp,
-        │                             drop Z and unused attributes, add bbox)
+        │                             drop Z and unused attributes, add feature
+        │                             and collection bboxes)
         ▼
-app/assets/data/glaciers.geojson  generated, committed (10.7 MB); brunch copies it to public/data/
+app/assets/data/glaciers.geojson  generated, committed (10.8 MB); brunch copies it to public/data/
         │  fetch(GLACIERS_URL)
         ▼
 app/components/InventoryMap.vue   Mapbox map, sources, layers, popups
@@ -133,6 +134,14 @@ app/components/InventoryMap.vue   Mapbox map, sources, layers, popups
 - Clicking a legend entry toggles that class. `hiddenClasses` drives a
   `setFilter` on every layer in `GLACIER_LAYERS`. Add new glacier layers
   there so they respect the toggles.
+- `GlacierSearch` is the name search in the panel.
+  - `InventoryMap` passes it a frozen index of the named features
+    (`buildSearchEntries`) and the map center, which is updated on `moveend`.
+  - With an empty query it suggests the named features nearest the center.
+    Once typing starts, it suggests names matching the query.
+  - Choosing a suggestion emits `select`. `zoomTo` then fits the map to that
+    feature's `bbox`, which `prepare-data` writes on every feature.
+  - Features with a blank name aren't searchable.
 - Hover uses `feature-state` and needs numeric feature `id`s. The source data
   already has them.
 - The map instance lives on `this.map`, **not** in `data()`. Vue would otherwise
@@ -225,7 +234,7 @@ meters.
   Dataset strings are free text, so never use `setHTML` with them.
 - Report map `error` events to the user only while nothing is displayed yet.
   After that, a failed basemap tile shouldn't replace the status.
-- The dataset is large: 10.7 MB prepared. Avoid extra copies of the full
+- The dataset is large: 10.8 MB prepared. Avoid extra copies of the full
   collection on the main thread. Prefer filters and expressions over rebuilding
   sources.
 
