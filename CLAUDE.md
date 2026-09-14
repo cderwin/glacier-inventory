@@ -130,6 +130,9 @@ app/components/InventoryMap.vue   Mapbox map, sources, layers, popups
   - `glaciers-fill` and `glaciers-outline` are shown from zoom 9 up.
 - Features are colored by `CLASS` through one `match` expression built from
   `CLASS_COLORS`. The legend is generated from the same object.
+- Clicking a legend entry toggles that class. `hiddenClasses` drives a
+  `setFilter` on every layer in `GLACIER_LAYERS`. Add new glacier layers
+  there so they respect the toggles.
 - Hover uses `feature-state` and needs numeric feature `id`s. The source data
   already has them.
 - The map instance lives on `this.map`, **not** in `data()`. Vue would otherwise

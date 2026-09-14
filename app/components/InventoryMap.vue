@@ -7,14 +7,21 @@
         {{ error }}
       </p>
       <p v-else-if="loading" class="inventory-status">Loading inventory…</p>
-      <p v-else class="inventory-status">
-        {{ featureCount }} glacier features loaded.
-      </p>
+      <p v-else class="inventory-status">{{ status }}</p>
 
       <ul class="inventory-legend">
         <li v-for="item in legend" :key="item.label">
-          <span class="inventory-swatch" :style="{ background: item.color }"></span>
-          {{ item.label }}
+          <button
+            type="button"
+            class="inventory-legend-item"
+            :class="{ 'inventory-legend-item--hidden': isHidden(item.label) }"
+            :aria-pressed="isHidden(item.label) ? 'false' : 'true'"
+            :title="(isHidden(item.label) ? 'Show ' : 'Hide ') + item.label"
+            @click="toggleClass(item.label)"
+          >
+            <span class="inventory-swatch" :style="{ background: item.color }"></span>
+            {{ item.label }}
+          </button>
         </li>
       </ul>
     </div>
@@ -38,6 +45,9 @@ const OTHER_COLOR = '#828282';
 // invisible at regional zooms. Show centroid dots until the shapes resolve.
 const POLYGON_MIN_ZOOM = 9;
 
+// Layers the legend's class toggles filter.
+const GLACIER_LAYERS = ['glacier-centroids', 'glaciers-fill', 'glaciers-outline'];
+
 const classColor = [
   'match',
   ['get', 'CLASS'],
@@ -55,8 +65,27 @@ export default {
       featureCount: 0,
       loading: false,
       error: null,
-      legend: Object.keys(CLASS_COLORS).map(label => ({ label, color: CLASS_COLORS[label] }))
+      legend: Object.keys(CLASS_COLORS).map(label => ({ label, color: CLASS_COLORS[label] })),
+      // Feature count per CLASS, and the classes switched off in the legend.
+      classCounts: {},
+      hiddenClasses: []
     };
+  },
+
+  computed: {
+    status() {
+      if (!this.hiddenClasses.length) {
+        return `${this.featureCount} glacier features loaded.`;
+      }
+      const hidden = this.hiddenClasses.reduce((sum, name) => sum + (this.classCounts[name] || 0), 0);
+      return `${this.featureCount - hidden} of ${this.featureCount} glacier features shown.`;
+    }
+  },
+
+  watch: {
+    hiddenClasses() {
+      this.applyClassFilter();
+    }
   },
 
   mounted() {
@@ -104,6 +133,12 @@ export default {
         const geojson = await response.json();
         // The component may have been destroyed while the request was open.
         if (!this.map) return;
+        const classCounts = {};
+        geojson.features.forEach(feature => {
+          const name = feature.properties.CLASS;
+          classCounts[name] = (classCounts[name] || 0) + 1;
+        });
+        this.classCounts = classCounts;
         this.featureCount = geojson.features.length;
         this.addLayers(geojson);
         this.map.fitBounds(geojson.bbox, { padding: 40, duration: 0 });
@@ -168,7 +203,31 @@ export default {
         }
       });
 
+      // Classes may have been switched off before the data arrived.
+      this.applyClassFilter();
       this.bindInteractions(['glacier-centroids', 'glaciers-fill']);
+    },
+
+    isHidden(name) {
+      return this.hiddenClasses.indexOf(name) !== -1;
+    },
+
+    toggleClass(name) {
+      this.hiddenClasses = this.isHidden(name)
+        ? this.hiddenClasses.filter(hidden => hidden !== name)
+        : this.hiddenClasses.concat(name);
+    },
+
+    applyClassFilter() {
+      const map = this.map;
+      // Before the layers exist, addLayers applies the filter instead.
+      if (!map || !map.getLayer('glaciers-fill')) return;
+      // Filter out hidden classes rather than listing visible ones, so a
+      // CLASS missing from the legend is never hidden.
+      const filter = this.hiddenClasses.length
+        ? ['!', ['in', ['get', 'CLASS'], ['literal', this.hiddenClasses.slice()]]]
+        : null;
+      GLACIER_LAYERS.forEach(layer => map.setFilter(layer, filter));
     },
 
     bindInteractions(layers) {
@@ -283,6 +342,37 @@ function popupContent(props) {
   margin: 0.4rem 0 0;
   padding: 0;
   list-style: none;
+}
+
+.inventory-legend-item {
+  display: inline-flex;
+  align-items: center;
+  margin: 0 -0.3rem;
+  padding: 0.1rem 0.3rem;
+  border: 0;
+  border-radius: 3px;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+
+.inventory-legend-item:hover {
+  background: var(--border);
+}
+
+.inventory-legend-item:focus-visible {
+  outline: 2px solid var(--text-muted);
+  outline-offset: 1px;
+}
+
+.inventory-legend-item--hidden {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.inventory-legend-item--hidden .inventory-swatch {
+  opacity: 0.3;
 }
 
 .inventory-swatch {
