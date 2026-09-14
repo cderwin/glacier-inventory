@@ -96,9 +96,10 @@ and never force-push `main`.
 ```
 data/inventory_20220929.geojson   source data, ESRI:102039 (Albers, meters), gitignored
         │  scripts/prepare-data.js   (simplify to 1 m, proj4 → WGS84, round to 5 dp,
-        │                             drop Z and unused attributes, add bbox)
+        │                             drop Z and unused attributes, add feature
+        │                             and collection bboxes and feature centroids)
         ▼
-app/assets/data/glaciers.geojson  generated, committed (10.7 MB); brunch copies it to public/data/
+app/assets/data/glaciers.geojson  generated, committed (10.9 MB); brunch copies it to public/data/
         │  fetch(GLACIERS_URL)
         ▼
 app/components/InventoryMap.vue   Mapbox map, sources, layers, popups
@@ -133,6 +134,20 @@ app/components/InventoryMap.vue   Mapbox map, sources, layers, popups
 - Clicking a legend entry toggles that class. `hiddenClasses` drives a
   `setFilter` on every layer in `GLACIER_LAYERS`. Add new glacier layers
   there so they respect the toggles.
+- `GlacierSearch` is the name search in the panel.
+  - `InventoryMap` passes it three things: a frozen index of the named
+    features (`buildSearchEntries`), the map center (updated on `moveend`),
+    and `hiddenClasses`.
+  - Suggestions are grouped by name and `GEO_REGION`, so a glacier split
+    into pieces is one suggestion. Classes switched off in the legend are
+    left out before grouping.
+  - With an empty query it suggests the groups nearest the center. Once
+    typing starts, it suggests names matching the query.
+  - Choosing a suggestion emits `select`. `zoomTo` centers the map on the
+    group's centroid, zoomed so every piece is in view. The group centroid
+    is the area-weighted mean of each feature's `centroid`, which
+    `prepare-data` writes along with `bbox`.
+  - Features with a blank name aren't searchable.
 - Hover uses `feature-state` and needs numeric feature `id`s. The source data
   already has them.
 - The map instance lives on `this.map`, **not** in `data()`. Vue would otherwise
@@ -153,7 +168,7 @@ re-run `prepare-data`.
 | `UNIT_NAME` | managing unit |
 | `YEAR`, `SOURCE_MAT` | when and from what the outline was mapped |
 | `INV_ID` | inventory ID |
-| `X_COORD`, `Y_COORD` | centroid, lon/lat |
+| `X_COORD`, `Y_COORD` | label point, lon/lat; not always the centroid (use the feature's `centroid`) |
 
 The source also has `STATENAME`, `ADM_NAME`, `LandOwner`, `COMMENT`, and
 others. Its `Shape_Length` and `Shape_Area` are in the source projection's
@@ -225,7 +240,7 @@ meters.
   Dataset strings are free text, so never use `setHTML` with them.
 - Report map `error` events to the user only while nothing is displayed yet.
   After that, a failed basemap tile shouldn't replace the status.
-- The dataset is large: 10.7 MB prepared. Avoid extra copies of the full
+- The dataset is large: 10.9 MB prepared. Avoid extra copies of the full
   collection on the main thread. Prefer filters and expressions over rebuilding
   sources.
 

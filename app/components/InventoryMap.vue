@@ -2,7 +2,15 @@
   <section class="inventory">
     <div ref="map" class="inventory-map"></div>
 
-    <div class="inventory-panel">
+    <div ref="panel" class="inventory-panel">
+      <glacier-search
+        :entries="searchEntries"
+        :center="mapCenter"
+        :hidden-classes="hiddenClasses"
+        :disabled="!searchEntries.length"
+        @select="zoomTo"
+      />
+
       <p v-if="error" class="inventory-status inventory-status--error">
         {{ error }}
       </p>
@@ -30,6 +38,7 @@
 
 <script>
 import { MAPBOX_ACCESS_TOKEN, GLACIERS_URL } from '../config';
+import GlacierSearch from './GlacierSearch.vue';
 
 // Loaded as a global from vendor.js (see npm.static in brunch-config.js).
 const mapboxgl = window.mapboxgl;
@@ -60,6 +69,8 @@ const classColor = [
 export default {
   name: 'InventoryMap',
 
+  components: { GlacierSearch },
+
   data() {
     return {
       featureCount: 0,
@@ -68,7 +79,10 @@ export default {
       legend: Object.keys(CLASS_COLORS).map(label => ({ label, color: CLASS_COLORS[label] })),
       // Feature count per CLASS, and the classes switched off in the legend.
       classCounts: {},
-      hiddenClasses: []
+      hiddenClasses: [],
+      // Named features for GlacierSearch. Frozen so Vue doesn't observe them.
+      searchEntries: Object.freeze([]),
+      mapCenter: null
     };
   },
 
@@ -111,6 +125,9 @@ export default {
         this.error = (event.error && event.error.message) || 'The map failed to load.';
       }
     });
+    this.map.on('moveend', () => {
+      this.mapCenter = this.map.getCenter().toArray();
+    });
     this.map.on('load', () => this.load());
   },
 
@@ -142,6 +159,7 @@ export default {
         this.featureCount = geojson.features.length;
         this.addLayers(geojson);
         this.map.fitBounds(geojson.bbox, { padding: 40, duration: 0 });
+        this.searchEntries = buildSearchEntries(geojson.features);
       } catch (err) {
         this.error = err.message;
       } finally {
@@ -230,6 +248,33 @@ export default {
       GLACIER_LAYERS.forEach(layer => map.setFilter(layer, filter));
     },
 
+    // Centers the map on a search group's centroid, zoomed so all its pieces
+    // are in view.
+    zoomTo(group) {
+      const map = this.map;
+      // Keep the glacier clear of the panel in the top-left corner. Don't
+      // keep that padding afterwards: it would shift the map's center, which
+      // the nearest-glacier suggestions and zoom controls use.
+      const panel = this.$refs.panel;
+      const padding = { top: panel.offsetTop + panel.offsetHeight + 20, right: 60, bottom: 40, left: 40 };
+      // The centroid is rarely the middle of the pieces' bbox, so widen the
+      // bbox to be symmetric around it before working out the zoom.
+      const [lon, lat] = group.centroid;
+      const [west, south, east, north] = group.bbox;
+      const halfWidth = Math.max(lon - west, east - lon);
+      const halfHeight = Math.max(lat - south, north - lat);
+      const camera = map.cameraForBounds(
+        [lon - halfWidth, lat - halfHeight, lon + halfWidth, lat + halfHeight],
+        { padding, maxZoom: 15 }
+      );
+      map.flyTo({
+        center: group.centroid,
+        zoom: camera ? camera.zoom : 15,
+        padding,
+        retainPadding: false
+      });
+    },
+
     bindInteractions(layers) {
       const map = this.map;
       let hovered = null;
@@ -262,6 +307,30 @@ export default {
     }
   }
 };
+
+// A small, frozen index of named features for GlacierSearch. Unnamed features
+// (blank GLACNAME, shown as "Unnamed" in popups) can't be searched for.
+function buildSearchEntries(features) {
+  const entries = [];
+  features.forEach(feature => {
+    const props = feature.properties;
+    const name = (props.GLACNAME || '').trim();
+    if (!name || name.toLowerCase() === 'unnamed') return;
+    entries.push(
+      Object.freeze({
+        id: feature.id,
+        name,
+        key: name.toLowerCase(),
+        className: props.CLASS,
+        region: props.GEO_REGION,
+        areaKm2: props.AREA_KM2,
+        centroid: feature.centroid,
+        bbox: feature.bbox
+      })
+    );
+  });
+  return Object.freeze(entries);
+}
 
 // Built with DOM APIs rather than setHTML so dataset text is never parsed as
 // markup.
