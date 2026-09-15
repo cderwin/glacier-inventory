@@ -116,7 +116,8 @@ app/components/InventoryMap.vue   Mapbox map, sources, layers, popups
 - `app/assets/` is copied verbatim into `public/` (including `index.html`).
 - `app/assets/icon.svg` is the favicon and the header icon (`App.vue` loads
   it from `BASE_PATH`). `icon-32.png` (favicon fallback) and
-  `apple-touch-icon.png` (180 px, square corners) are rendered from it.
+  `apple-touch-icon.png` (180 px, square corners, no `#rim`) are rendered
+  from it.
   Re-render both after editing the SVG, e.g. by drawing it to a canvas in a
   browser.
 - Bundles:
