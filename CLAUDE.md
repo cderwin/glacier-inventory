@@ -114,12 +114,15 @@ app/components/InventoryMap.vue   Mapbox map, sources, layers, popups
   router's `base` and `GLACIERS_URL` do). `index.html` uses relative asset
   URLs, which only works while every route is one level deep.
 - `app/assets/` is copied verbatim into `public/` (including `index.html`).
-- `app/assets/icon.svg` is the favicon and the header icon (`App.vue` loads
-  it from `BASE_PATH`). `icon-32.png` (favicon fallback) and
-  `apple-touch-icon.png` (180 px, square corners, no `#rim`) are rendered
-  from it.
-  Re-render both after editing the SVG, e.g. by drawing it to a canvas in a
-  browser.
+- Icons:
+  - `app/assets/icon.svg` is the favicon: peaks on a navy tile. `icon-32.png`
+    (favicon fallback) and `apple-touch-icon.png` (180 px, square corners, no
+    `#rim`) are rendered from it. Re-render both after editing the SVG, e.g.
+    by drawing it to a canvas in a browser.
+  - The header mark is inline SVG in `App.vue`: the same peaks with no tile,
+    filled from the `--mark-*` tokens so it adapts to the color scheme. The
+    tile is left out because it would blend into the page. Keep its paths in
+    step with `icon.svg`.
 - Bundles:
   - `js/vendor.js`: everything outside `app/`
   - `js/app.js`: our code

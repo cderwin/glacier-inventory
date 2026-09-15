@@ -2,7 +2,19 @@
   <div class="app">
     <header class="app-header">
       <h1 class="app-title">
-        <img class="app-icon" :src="iconUrl" alt="" width="28" height="28" />
+        <!-- The favicon's peaks without its tile, themed from --mark-*. The
+             tile would blend into the page here. Keep the paths in step with
+             app/assets/icon.svg. -->
+        <svg class="app-mark" viewBox="6 14 54 36" width="33" height="22" aria-hidden="true" focusable="false">
+          <path class="app-mark-shade" d="M42 20 L44 50 L60 50 Z" />
+          <path class="app-mark-lit" d="M42 20 L28 50 L44 50 Z" />
+          <path class="app-mark-shade" d="M26 14 L28 50 L46 50 Z" />
+          <path class="app-mark-lit" d="M26 14 L6 50 L28 50 Z" />
+          <path class="app-mark-snow" d="M42 20 L38.3 28 L40.3 26.8 L42.5 28.3 Z" />
+          <path class="app-mark-snow" d="M26 14 L19.3 26 L22.5 24 L25 26.6 L26.7 25 Z" />
+          <path class="app-mark-snow" d="M26 14 L26.7 25 L29.6 27.2 L32.7 26 Z" opacity="0.75" />
+          <path class="app-mark-snow" d="M42 20 L42.5 28.3 L44.6 26.9 L46.8 28 Z" opacity="0.75" />
+        </svg>
         Glacier Inventory
       </h1>
       <nav class="app-nav">
@@ -18,17 +30,8 @@
 </template>
 
 <script>
-import { BASE_PATH } from './config';
-
 export default {
-  name: 'App',
-
-  data() {
-    return {
-      // Same file as the favicon (app/assets/icon.svg).
-      iconUrl: `${BASE_PATH}icon.svg`
-    };
-  }
+  name: 'App'
 };
 </script>
 
@@ -57,10 +60,22 @@ export default {
   letter-spacing: 0.01em;
 }
 
-.app-icon {
+.app-mark {
   display: block;
-  width: 28px;
-  height: 28px;
+  width: 33px;
+  height: 22px;
+}
+
+.app-mark-snow {
+  fill: var(--mark-snow);
+}
+
+.app-mark-lit {
+  fill: var(--mark-lit);
+}
+
+.app-mark-shade {
+  fill: var(--mark-shade);
 }
 
 .app-nav {

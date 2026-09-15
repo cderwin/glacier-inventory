@@ -7,6 +7,11 @@
   --text-muted: #3f6275;
   --border: #bcdcea;
   --danger: #b42318;
+  /* Header mark (App.vue): snowcaps, lit faces, shaded faces. It sits
+     straight on the page, so each tone stays above 3:1 against --bg. */
+  --mark-snow: #5b83b8;
+  --mark-lit: #2c4a78;
+  --mark-shade: #132a45;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -17,6 +22,10 @@
     --text-muted: #93b9ca;
     --border: #1f4155;
     --danger: #f97066;
+    /* Inverted for the dark page: ice-bright snow, mid-blue rock. */
+    --mark-snow: #f1f6fb;
+    --mark-lit: #9dbbdb;
+    --mark-shade: #567cad;
   }
 }
 
