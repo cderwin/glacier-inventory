@@ -57,7 +57,7 @@ from the `MAPBOX_ACCESS_TOKEN` repository variable and builds with
 
 ```
 app/
-  assets/          copied verbatim into public/ (index.html, data/glaciers.geojson)
+  assets/          copied verbatim into public/ (index.html, icons, data/glaciers.geojson)
   components/      Vue single-file components
   router/          vue-router routes
   styles/          global CSS

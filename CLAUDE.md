@@ -114,6 +114,12 @@ app/components/InventoryMap.vue   Mapbox map, sources, layers, popups
   router's `base` and `GLACIERS_URL` do). `index.html` uses relative asset
   URLs, which only works while every route is one level deep.
 - `app/assets/` is copied verbatim into `public/` (including `index.html`).
+- `app/assets/icon.svg` is the favicon and the header icon (`App.vue` loads
+  it from `BASE_PATH`). `icon-32.png` (favicon fallback) and
+  `apple-touch-icon.png` (180 px, square corners, no `#rim`) are rendered
+  from it.
+  Re-render both after editing the SVG, e.g. by drawing it to a canvas in a
+  browser.
 - Bundles:
   - `js/vendor.js`: everything outside `app/`
   - `js/app.js`: our code
@@ -220,9 +226,17 @@ meters.
 - Styles are extracted globally (not scoped). Prefix class names with the
   component's root class, BEM-style: `.inventory-panel`,
   `.inventory-status--error`.
-- Use the CSS custom properties in `app/styles/app.css` (`--bg`, `--text`,
-  `--text-muted`, `--border`, `--danger`) so dark mode keeps working. Content
-  drawn on the map (e.g. popups) stays light, because the basemap is light.
+- Use the CSS custom properties in `app/styles/app.css` so dark mode keeps
+  working: `--bg`, `--bg-deep`, `--text`, `--text-muted`, `--border`, and
+  `--danger`. Content drawn on the map (e.g. popups) stays light, because the
+  basemap is light.
+  - The palette is glacial blue ice: pale tints in light mode, deep blues in
+    dark mode. The page background is a gradient from `--bg` to `--bg-deep`,
+    and panels use flat `--bg`.
+  - Text colors meet WCAG AA (4.5:1) on both backgrounds. Recheck contrast
+    when changing them.
+  - The `theme-color` meta tags in `index.html` repeat `--bg`; update them
+    together.
 - Handle loading and error states the way `InventoryMap` does: `loading` and
   `error` in `data()`, the error shown before the loading message.
 - Put third-party instances (maps, charts), large GeoJSON, and other big
