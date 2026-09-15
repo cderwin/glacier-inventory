@@ -5,8 +5,8 @@
       :key="option.value"
       type="button"
       class="theme-toggle-button"
-      :class="{ 'theme-toggle-button--active': option.value === theme }"
-      :aria-pressed="option.value === theme ? 'true' : 'false'"
+      :class="{ 'theme-toggle-button--active': option.value === active }"
+      :aria-pressed="option.value === active ? 'true' : 'false'"
       :title="option.title"
       @click="select(option.value)"
     >
@@ -16,27 +16,58 @@
 </template>
 
 <script>
-import { applyTheme, saveTheme, storedTheme } from '../theme';
+import { applyTheme, DARK_QUERY, saveTheme, storedTheme, systemTheme } from '../theme';
 
-// Light/dark/system switch. 'System' follows the OS setting, which is the
-// default until the reader picks one.
+// Light/dark switch. Until the reader picks one, the app follows the system
+// setting and the button for whichever theme that produces is shown as
+// active, so the control always reflects what's on screen.
 export default {
   name: 'ThemeToggle',
 
   data() {
     return {
-      theme: storedTheme(),
+      chosen: storedTheme(),
+      system: systemTheme(),
       options: [
-        { value: 'light', label: 'Light', title: 'Always use the light theme' },
-        { value: 'dark', label: 'Dark', title: 'Always use the dark theme' },
-        { value: 'system', label: 'System', title: 'Follow the system setting' }
+        { value: 'light', label: 'Light', title: 'Use the light theme' },
+        { value: 'dark', label: 'Dark', title: 'Use the dark theme' }
       ]
     };
   },
 
+  computed: {
+    active() {
+      return this.chosen || this.system;
+    }
+  },
+
+  mounted() {
+    // While no theme is chosen, follow the system setting as it changes.
+    this.query = window.matchMedia && window.matchMedia(DARK_QUERY);
+    if (!this.query) return;
+    this.onSystemChange = () => {
+      this.system = systemTheme();
+    };
+    if (this.query.addEventListener) {
+      this.query.addEventListener('change', this.onSystemChange);
+    } else {
+      this.query.addListener(this.onSystemChange);
+    }
+  },
+
+  beforeDestroy() {
+    if (!this.query) return;
+    if (this.query.removeEventListener) {
+      this.query.removeEventListener('change', this.onSystemChange);
+    } else {
+      this.query.removeListener(this.onSystemChange);
+    }
+    this.query = null;
+  },
+
   methods: {
     select(theme) {
-      this.theme = theme;
+      this.chosen = theme;
       applyTheme(theme);
       saveTheme(theme);
     }
@@ -53,7 +84,7 @@ export default {
 }
 
 .theme-toggle-button {
-  padding: 0.15rem 0.6rem;
+  padding: 0.15rem 0.7rem;
   border: 0;
   background: none;
   color: var(--text-muted);

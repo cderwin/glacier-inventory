@@ -1,10 +1,18 @@
-// Color scheme selection. 'system' follows prefers-color-scheme (the
-// default); 'light' and 'dark' set <html data-theme>, which app.css uses to
-// override the media query. The choice is remembered per browser.
+// Color scheme selection. Until the reader picks one, the app follows
+// prefers-color-scheme. Picking 'light' or 'dark' sets <html data-theme>,
+// which app.css uses to override the media query, and is remembered per
+// browser.
 
 const STORAGE_KEY = 'glacier-inventory:theme';
 
-export const THEMES = ['system', 'light', 'dark'];
+export const THEMES = ['light', 'dark'];
+
+export const DARK_QUERY = '(prefers-color-scheme: dark)';
+
+// What the system asks for right now.
+export function systemTheme() {
+  return window.matchMedia && window.matchMedia(DARK_QUERY).matches ? 'dark' : 'light';
+}
 
 // Must match --light-bg and --dark-bg in app/styles/app.css.
 const BACKGROUNDS = { light: '#eaf5fa', dark: '#0b2233' };
@@ -24,13 +32,14 @@ function metas() {
   return themeColorMetas;
 }
 
-// Storage throws in some privacy modes, and the app works fine without it.
+// The reader's choice, or null while they haven't made one. Storage throws
+// in some privacy modes, and the app works fine without it.
 export function storedTheme() {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
-    return THEMES.indexOf(stored) === -1 ? 'system' : stored;
+    return THEMES.indexOf(stored) === -1 ? null : stored;
   } catch (err) {
-    return 'system';
+    return null;
   }
 }
 
@@ -42,9 +51,10 @@ export function saveTheme(theme) {
   }
 }
 
+// A null theme hands control back to prefers-color-scheme.
 export function applyTheme(theme) {
   const root = document.documentElement;
-  if (theme === 'system') {
+  if (!theme) {
     root.removeAttribute('data-theme');
     metas().forEach(({ meta, content }) => meta.setAttribute('content', content));
   } else {
