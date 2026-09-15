@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <title>Glacier Inventory</title>
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1f7fa8"/>
+      <stop offset="1" stop-color="#0b3a54"/>
+    </linearGradient>
+    <linearGradient id="ice" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f2fbfe"/>
+      <stop offset="1" stop-color="#8fd3ec"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="url(#sky)"/>
+  <!-- Two peaks -->
+  <path d="M3 56 L24 15 L32 28 L41 19 L61 56 Z" fill="#4fa7ca"/>
+  <!-- Snowcaps -->
+  <path d="M24 15 L30.7 25.7 L27.4 24.2 L24.2 27 L21 24 L18.3 26.1 Z" fill="#ffffff"/>
+  <path d="M41 19 L45.1 26.6 L42.6 25.3 L40.1 27.4 L37.6 25.1 L35.3 25 Z" fill="#ffffff"/>
+  <!-- Glacier flowing from the col between the peaks, widening downhill -->
+  <path d="M29.6 30.2 Q32 27.4 34.4 30.2 Q39.5 42 48 56 L16 56 Q24.5 42 29.6 30.2 Z" fill="url(#ice)"/>
+  <!-- Ogives: crevasse bands bowing downstream -->
+  <path d="M27.2 40.5 Q32 44 36.8 40.5 M23.2 48.4 Q32 53.4 40.8 48.4" fill="none" stroke="#5fb8d8" stroke-width="1.8" stroke-linecap="round"/>
+</svg>
