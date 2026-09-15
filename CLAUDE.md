@@ -236,10 +236,19 @@ meters.
   - The palette is glacial blue ice: pale tints in light mode, deep blues in
     dark mode. The page background is a gradient from `--bg` to `--bg-deep`,
     and panels use flat `--bg`.
+  - Both palettes are defined once as `--light-*`/`--dark-*`, then mapped to
+    the tokens above in three places: the light default, the
+    `prefers-color-scheme: dark` block, and `:root[data-theme='dark']`. Add
+    new tokens to all three.
+  - `ThemeToggle` (header, far right) switches between light, dark, and
+    system. `app/theme.js` stores the choice in `localStorage`, sets
+    `<html data-theme>`, and keeps the `theme-color` metas in step;
+    `initialize.js` applies it before mounting, so there's no flash. Only
+    `system` leaves `data-theme` off and follows the OS.
   - Text colors meet WCAG AA (4.5:1) on both backgrounds. Recheck contrast
     when changing them.
-  - The `theme-color` meta tags in `index.html` repeat `--bg`; update them
-    together.
+  - The `theme-color` meta tags in `index.html` and `BACKGROUNDS` in
+    `app/theme.js` repeat `--bg`; update them together.
 - Handle loading and error states the way `InventoryMap` does: `loading` and
   `error` in `data()`, the error shown before the loading message.
 - Put third-party instances (maps, charts), large GeoJSON, and other big

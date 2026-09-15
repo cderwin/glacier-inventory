@@ -21,6 +21,8 @@
         <router-link to="/">Map</router-link>
         <router-link to="/about">About</router-link>
       </nav>
+
+      <theme-toggle class="app-theme-toggle" />
     </header>
 
     <main class="app-main">
@@ -30,8 +32,12 @@
 </template>
 
 <script>
+import ThemeToggle from './components/ThemeToggle.vue';
+
 export default {
-  name: 'App'
+  name: 'App',
+
+  components: { ThemeToggle }
 };
 </script>
 
@@ -44,8 +50,9 @@ export default {
 
 .app-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 1.5rem;
+  gap: 0.75rem 1.5rem;
   padding: 0.75rem 1.25rem;
   border-bottom: 1px solid var(--border);
 }
@@ -90,6 +97,12 @@ export default {
 
 .app-nav a.router-link-exact-active {
   color: var(--text);
+}
+
+/* Pushed to the far end of the header, and first in the tab order after the
+   nav links. */
+.app-theme-toggle {
+  margin-left: auto;
 }
 
 .app-main {
