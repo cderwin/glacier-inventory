@@ -48,6 +48,9 @@ const mapboxgl = window.mapboxgl;
 // invisible at regional zooms. Show centroid dots until the shapes resolve.
 const POLYGON_MIN_ZOOM = 9;
 
+// Terrain elevation source (Mapbox's DEM tiles).
+const DEM_SOURCE = 'mapbox-dem';
+
 // Layers the legend's class toggles filter.
 const GLACIER_LAYERS = ['glacier-centroids', 'glaciers-fill', 'glaciers-outline'];
 
@@ -109,7 +112,9 @@ export default {
       container: this.$refs.map,
       style: 'mapbox://styles/mapbox/outdoors-v12'
     });
-    this.map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+    // visualizePitch shows the tilt on the compass, and right-drag (or
+    // ctrl-drag) tilts the map into the terrain.
+    this.map.addControl(new mapboxgl.NavigationControl({ visualizePitch: true }), 'top-right');
     this.map.addControl(new mapboxgl.ScaleControl(), 'bottom-left');
     this.map.on('error', event => {
       console.error(event.error);
@@ -122,7 +127,10 @@ export default {
     this.map.on('moveend', () => {
       this.mapCenter = this.map.getCenter().toArray();
     });
-    this.map.on('load', () => this.load());
+    this.map.on('load', () => {
+      this.addTerrain();
+      this.load();
+    });
   },
 
   beforeDestroy() {
@@ -133,6 +141,29 @@ export default {
   },
 
   methods: {
+    // Elevation for the basemap. Fill and line layers drape over it, so the
+    // glacier outlines follow the topography once the map is tilted.
+    addTerrain() {
+      const map = this.map;
+      map.addSource(DEM_SOURCE, {
+        type: 'raster-dem',
+        url: 'mapbox://mapbox.mapbox-terrain-dem-v1',
+        tileSize: 512,
+        // The DEM has no detail past 14; the camera can still zoom closer.
+        maxzoom: 14
+      });
+      map.setTerrain({ source: DEM_SOURCE, exaggeration: 1 });
+      // Without a sky the horizon is an abrupt edge once the map is tilted.
+      map.addLayer({
+        id: 'sky',
+        type: 'sky',
+        paint: {
+          'sky-type': 'atmosphere',
+          'sky-atmosphere-sun-intensity': 5
+        }
+      });
+    },
+
     async load() {
       // Clear map errors from before the style finished loading.
       this.error = null;
