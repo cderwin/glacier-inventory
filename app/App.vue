@@ -28,16 +28,19 @@
     <main class="app-main">
       <router-view />
     </main>
+
+    <intro-dialog />
   </div>
 </template>
 
 <script>
+import IntroDialog from './components/IntroDialog.vue';
 import ThemeToggle from './components/ThemeToggle.vue';
 
 export default {
   name: 'App',
 
-  components: { ThemeToggle }
+  components: { IntroDialog, ThemeToggle }
 };
 </script>
 

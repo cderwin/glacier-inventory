@@ -3,8 +3,12 @@
 ## Purpose
 
 A browser viewer for a glacier inventory of the western contiguous US:
-2,542 polygons (glaciers, perennial snowfields, buried ice) across CA, OR, WA,
-ID, MT, WY, CO, NV. The source is `data/inventory_20220929.geojson`, which is
+2,542 polygons (1,331 glaciers, 1,176 perennial snowfields, 35 buried ice)
+across seven states: WA, MT, WY, CA, OR, CO, ID (no NV). The data is the
+inventory published by Fountain, Glenn, and McNeil (2023), Earth Syst. Sci.
+Data 15, 4077–4104, https://doi.org/10.5194/essd-15-4077-2023, CC BY 4.0. Cite
+it wherever the data is described; `About.vue` carries the full description.
+The source is `data/inventory_20220929.geojson`, which is
 42 MB and gitignored. A reduced copy is committed at
 `app/assets/data/glaciers.geojson`. The app shows it on a Mapbox GL map, and
 clicking a feature shows its attributes. Pushes to `main` deploy it to
@@ -108,6 +112,13 @@ app/components/InventoryMap.vue   Mapbox map, sources, layers, popups
 - `app/initialize.js` is the entry point. Brunch auto-requires it, so there's no
   inline script in `index.html`. It mounts `App.vue` with the router.
 - `app/router/index.js` has two routes: `/` → `InventoryMap`, `/about` → `About`.
+- `About.vue` describes the inventory: feature types, mapping method, imagery,
+  uncertainties, and the citation. Every claim there comes from the article,
+  so check it against the paper before editing.
+- `IntroDialog.vue` (mounted in `App.vue`) shows the same summary in brief on
+  a first visit, then records `glacier-inventory:intro-seen` in `localStorage`.
+  There's deliberately no way to reopen it; the About page is the permanent
+  copy.
 - `app/config.js` holds build-time settings: `MAPBOX_ACCESS_TOKEN` and
   `BASE_PATH` (inlined from the environment) and `GLACIERS_URL`.
 - The app can be served under a sub-path. Build URLs from `BASE_PATH` (the
@@ -139,7 +150,8 @@ app/components/InventoryMap.vue   Mapbox map, sources, layers, popups
     1 km² and can't be seen at regional zoom.
   - `glaciers-fill` and `glaciers-outline` are shown from zoom 9 up.
 - Features are colored by `CLASS` through one `match` expression built from
-  `CLASS_COLORS`. The legend is generated from the same object.
+  `CLASS_COLORS` in `app/classes.js`. The legend, and the swatches on the
+  About page, come from the same object.
 - Clicking a legend entry toggles that class. `hiddenClasses` drives a
   `setFilter` on every layer in `GLACIER_LAYERS`. Add new glacier layers
   there so they respect the toggles.
