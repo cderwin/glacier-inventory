@@ -1,19 +1,69 @@
+/* Glacial blue ice: pale meltwater tints in light mode, deep crevasse blues
+   in dark mode. Text colors meet WCAG AA (4.5:1) on both --bg and --bg-deep,
+   and the header mark's tones clear 3:1.
+
+   Both palettes are defined once below, then mapped to the tokens the app
+   uses. The mapping appears three times: the light default, the system dark
+   preference, and the explicit choices ThemeToggle writes to
+   <html data-theme>. Keep the three in step. */
 :root {
-  --bg: #ffffff;
-  --text: #16181d;
-  --text-muted: #6b7280;
-  --border: #e5e7eb;
-  --danger: #b42318;
+  --light-bg: #eaf5fa;
+  --light-bg-deep: #cfe8f3;
+  --light-text: #0d2b3e;
+  --light-text-muted: #3f6275;
+  --light-border: #bcdcea;
+  --light-danger: #b42318;
+  --light-mark-snow: #5b83b8;
+  --light-mark-lit: #2c4a78;
+  --light-mark-shade: #132a45;
+
+  --dark-bg: #0b2233;
+  --dark-bg-deep: #061520;
+  --dark-text: #e2f3fa;
+  --dark-text-muted: #93b9ca;
+  --dark-border: #1f4155;
+  --dark-danger: #f97066;
+  --dark-mark-snow: #f1f6fb;
+  --dark-mark-lit: #9dbbdb;
+  --dark-mark-shade: #567cad;
+
+  --bg: var(--light-bg);
+  --bg-deep: var(--light-bg-deep);
+  --text: var(--light-text);
+  --text-muted: var(--light-text-muted);
+  --border: var(--light-border);
+  --danger: var(--light-danger);
+  --mark-snow: var(--light-mark-snow);
+  --mark-lit: var(--light-mark-lit);
+  --mark-shade: var(--light-mark-shade);
 }
 
+/* System preference, unless the reader chose light. */
 @media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #101216;
-    --text: #e8eaed;
-    --text-muted: #9aa0a6;
-    --border: #2a2e35;
-    --danger: #f97066;
+  :root:not([data-theme='light']) {
+    --bg: var(--dark-bg);
+    --bg-deep: var(--dark-bg-deep);
+    --text: var(--dark-text);
+    --text-muted: var(--dark-text-muted);
+    --border: var(--dark-border);
+    --danger: var(--dark-danger);
+    --mark-snow: var(--dark-mark-snow);
+    --mark-lit: var(--dark-mark-lit);
+    --mark-shade: var(--dark-mark-shade);
   }
+}
+
+/* Explicit choice wins over the system preference. */
+:root[data-theme='dark'] {
+  --bg: var(--dark-bg);
+  --bg-deep: var(--dark-bg-deep);
+  --text: var(--dark-text);
+  --text-muted: var(--dark-text-muted);
+  --border: var(--dark-border);
+  --danger: var(--dark-danger);
+  --mark-snow: var(--dark-mark-snow);
+  --mark-lit: var(--dark-mark-lit);
+  --mark-shade: var(--dark-mark-shade);
 }
 
 * {
@@ -21,8 +71,10 @@
 }
 
 body {
+  min-height: 100vh;
   margin: 0;
-  background: var(--bg);
+  /* Surface ice fading into deeper blue. Panels sit on the flat --bg. */
+  background: linear-gradient(180deg, var(--bg) 0%, var(--bg-deep) 100%);
   color: var(--text);
   font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
 }

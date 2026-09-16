@@ -114,6 +114,15 @@ app/components/InventoryMap.vue   Mapbox map, sources, layers, popups
   router's `base` and `GLACIERS_URL` do). `index.html` uses relative asset
   URLs, which only works while every route is one level deep.
 - `app/assets/` is copied verbatim into `public/` (including `index.html`).
+- Icons:
+  - `app/assets/icon.svg` is the favicon: peaks on a navy tile. `icon-32.png`
+    (favicon fallback) and `apple-touch-icon.png` (180 px, square corners, no
+    `#rim`) are rendered from it. Re-render both after editing the SVG, e.g.
+    by drawing it to a canvas in a browser.
+  - The header mark is inline SVG in `App.vue`: the same peaks with no tile,
+    filled from the `--mark-*` tokens so it adapts to the color scheme. The
+    tile is left out because it would blend into the page. Keep its paths in
+    step with `icon.svg`.
 - Bundles:
   - `js/vendor.js`: everything outside `app/`
   - `js/app.js`: our code
@@ -220,9 +229,29 @@ meters.
 - Styles are extracted globally (not scoped). Prefix class names with the
   component's root class, BEM-style: `.inventory-panel`,
   `.inventory-status--error`.
-- Use the CSS custom properties in `app/styles/app.css` (`--bg`, `--text`,
-  `--text-muted`, `--border`, `--danger`) so dark mode keeps working. Content
-  drawn on the map (e.g. popups) stays light, because the basemap is light.
+- Use the CSS custom properties in `app/styles/app.css` so dark mode keeps
+  working: `--bg`, `--bg-deep`, `--text`, `--text-muted`, `--border`, and
+  `--danger`. Content drawn on the map (e.g. popups) stays light, because the
+  basemap is light.
+  - The palette is glacial blue ice: pale tints in light mode, deep blues in
+    dark mode. The page background is a gradient from `--bg` to `--bg-deep`,
+    and panels use flat `--bg`.
+  - Both palettes are defined once as `--light-*`/`--dark-*`, then mapped to
+    the tokens above in three places: the light default, the
+    `prefers-color-scheme: dark` block, and `:root[data-theme='dark']`. Add
+    new tokens to all three.
+  - `ThemeToggle` (header, far right) switches between light and dark.
+    `app/theme.js` stores the choice in `localStorage`, sets
+    `<html data-theme>`, and keeps the `theme-color` metas in step;
+    `initialize.js` applies it before mounting, so there's no flash.
+  - The system setting is the default, not a toggle option: with nothing
+    stored, `data-theme` stays off and `prefers-color-scheme` decides. The
+    toggle then shows the button for whatever the system produces, and
+    follows it if the OS changes.
+  - Text colors meet WCAG AA (4.5:1) on both backgrounds. Recheck contrast
+    when changing them.
+  - The `theme-color` meta tags in `index.html` and `BACKGROUNDS` in
+    `app/theme.js` repeat `--bg`; update them together.
 - Handle loading and error states the way `InventoryMap` does: `loading` and
   `error` in `data()`, the error shown before the loading message.
 - Put third-party instances (maps, charts), large GeoJSON, and other big
