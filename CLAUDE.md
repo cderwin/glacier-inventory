@@ -281,6 +281,15 @@ meters.
   Dataset strings are free text, so never use `setHTML` with them.
 - Report map `error` events to the user only while nothing is displayed yet.
   After that, a failed basemap tile shouldn't replace the status.
+- Terrain is on: `addTerrain` adds the `mapbox-dem` raster-dem source and
+  calls `setTerrain`, plus a `sky` layer for the horizon. The camera starts
+  flat; right-drag or ctrl-drag tilts it.
+  - Fill and line layers drape over the terrain, so glacier outlines follow
+    the topography. New glacier layers need no extra work.
+  - The DEM stops at zoom 14 (`maxzoom`), which is its full detail; the
+    camera can still zoom in past that.
+  - `map.project()` and `queryRenderedFeatures` account for elevation, so
+    clicks and popups keep working when tilted.
 - The dataset is large: 10.9 MB prepared. Avoid extra copies of the full
   collection on the main thread. Prefer filters and expressions over rebuilding
   sources.
@@ -306,4 +315,8 @@ meters.
   the console. Once the data loads, the map fits to its bounds and the dots
   should cover the western US. At Mount Rainier
   (`[-121.76, 46.853]`, zoom 12) the glacier shapes should line up with the
-  basemap.
+  basemap. Tilt the map there (pitch ~70) and the mountain should stand up in
+  relief with the glaciers draped on it.
+- Driving the map from browser automation: the screenshot coordinate frame
+  isn't CSS pixels. Scale page coordinates by `frameWidth / window.innerWidth`
+  before clicking, or a click lands tens of pixels off.
