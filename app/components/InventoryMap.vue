@@ -38,17 +38,11 @@
 
 <script>
 import { MAPBOX_ACCESS_TOKEN, GLACIERS_URL } from '../config';
+import { CLASS_COLORS, OTHER_COLOR } from '../classes';
 import GlacierSearch from './GlacierSearch.vue';
 
 // Loaded as a global from vendor.js (see npm.static in brunch-config.js).
 const mapboxgl = window.mapboxgl;
-
-const CLASS_COLORS = {
-  Glacier: '#2f80ed',
-  'Perennial snowfield': '#56ccf2',
-  'Buried ice': '#9b51e0'
-};
-const OTHER_COLOR = '#828282';
 
 // Glaciers are mostly well under a square kilometer, so polygons are
 // invisible at regional zooms. Show centroid dots until the shapes resolve.
